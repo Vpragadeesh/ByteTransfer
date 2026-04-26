@@ -5,6 +5,7 @@ import 'package:byte_transfer/services/file_service.dart';
 import 'package:byte_transfer/services/network_service.dart';
 import 'package:byte_transfer/services/http_server_service.dart';
 import 'package:byte_transfer/services/permission_service.dart';
+import 'package:byte_transfer/services/download_service.dart';
 
 /// Application state management using ChangeNotifier
 class AppStateManager extends ChangeNotifier {
@@ -13,6 +14,7 @@ class AppStateManager extends ChangeNotifier {
   final NetworkService networkService;
   final HTTPServerService httpServerService;
   final PermissionService permissionService;
+  final DownloadService? downloadService;
 
   // State variables
   bool _isInitializing = true;
@@ -23,16 +25,21 @@ class AppStateManager extends ChangeNotifier {
   bool _isServerRunning = false;
   String? _shareLink;
   String? _error;
+  List<RemoteFileMetadata> _remoteFiles = [];
+  DownloadProgress? _downloadProgress;
+  bool _isDownloading = false;
 
   // Subscriptions
   late StreamSubscription<NetworkStatus> _networkSubscription;
   late StreamSubscription<ServerEvent> _eventSubscription;
+  StreamSubscription<DownloadProgress>? _downloadSubscription;
 
   AppStateManager({
     required this.fileService,
     required this.networkService,
     required this.httpServerService,
     required this.permissionService,
+    this.downloadService,
   });
 
   // Getters
@@ -44,6 +51,9 @@ class AppStateManager extends ChangeNotifier {
   bool get isServerRunning => _isServerRunning;
   String? get shareLink => _shareLink;
   String? get error => _error;
+  List<RemoteFileMetadata> get remoteFiles => List.unmodifiable(_remoteFiles);
+  DownloadProgress? get downloadProgress => _downloadProgress;
+  bool get isDownloading => _isDownloading;
 
   bool get canShare => _networkStatus?.isConnected ?? false;
   bool get isWiFiConnected => _networkStatus?.type == NetworkType.wifi;
@@ -195,10 +205,117 @@ class AppStateManager extends ChangeNotifier {
     }
   }
 
+  /// Connect to remote server and fetch file list
+  Future<void> connectToRemoteServer(String shareLink) async {
+    try {
+      _error = null;
+      _remoteFiles = [];
+      notifyListeners();
+
+      if (downloadService == null) {
+        _error = 'Download service not available';
+        notifyListeners();
+        return;
+      }
+
+      // Extract base URL from share link
+      final uri = Uri.parse(shareLink);
+      final baseUrl = '${uri.scheme}://${uri.host}:${uri.port}';
+
+      // Check server health first
+      final isHealthy = await downloadService!.checkServerHealth(baseUrl);
+      if (!isHealthy) {
+        _error = 'Cannot connect to server. Please check the link and try again.';
+        notifyListeners();
+        return;
+      }
+
+      // Fetch file list
+      _remoteFiles = await downloadService!.getRemoteFiles(baseUrl);
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to connect: $e';
+      notifyListeners();
+    }
+  }
+
+  /// Download a file from remote server
+  Future<void> downloadRemoteFile({
+    required String baseUrl,
+    required String fileId,
+    required String fileName,
+  }) async {
+    try {
+      if (downloadService == null) {
+        _error = 'Download service not available';
+        notifyListeners();
+        return;
+      }
+
+      _isDownloading = true;
+      _downloadProgress = null;
+      _error = null;
+      notifyListeners();
+
+      // Cancel any previous download
+      await _downloadSubscription?.cancel();
+
+      // Start download and listen to progress
+      _downloadSubscription = downloadService!
+          .downloadFile(
+            baseUrl: baseUrl,
+            fileId: fileId,
+            fileName: fileName,
+          )
+          .listen(
+        (progress) {
+          _downloadProgress = progress;
+          notifyListeners();
+
+          if (progress.isComplete) {
+            _isDownloading = false;
+            _error = null;
+            notifyListeners();
+          }
+        },
+        onError: (error) {
+          _error = 'Download failed: $error';
+          _isDownloading = false;
+          notifyListeners();
+        },
+        onDone: () {
+          _isDownloading = false;
+          notifyListeners();
+        },
+      );
+    } catch (e) {
+      _error = 'Failed to start download: $e';
+      _isDownloading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cancel ongoing download
+  Future<void> cancelDownload() async {
+    try {
+      await downloadService?.cancelDownload();
+      await _downloadSubscription?.cancel();
+      _isDownloading = false;
+      _downloadProgress = null;
+      _error = null;
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to cancel download: $e';
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _networkSubscription.cancel();
     _eventSubscription.cancel();
+    _downloadSubscription?.cancel();
     httpServerService.dispose();
     super.dispose();
   }

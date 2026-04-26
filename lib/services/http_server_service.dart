@@ -35,4 +35,7 @@ abstract class HTTPServerService {
 
   /// Get list of all registered files
   List<SharedFile> getRegisteredFiles();
+
+  /// Cleanup resources
+  void dispose();
 }

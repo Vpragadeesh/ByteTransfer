@@ -5,6 +5,7 @@ import 'package:byte_transfer/services/file_service_impl.dart';
 import 'package:byte_transfer/services/network_service_impl.dart';
 import 'package:byte_transfer/services/http_server_service_impl.dart';
 import 'package:byte_transfer/services/permission_service_impl.dart';
+import 'package:byte_transfer/services/download_service_impl.dart';
 import 'package:byte_transfer/ui/screens/sender_screen.dart';
 import 'package:byte_transfer/ui/screens/receiver_screen.dart';
 import 'package:byte_transfer/ui/screens/home_screen.dart';
@@ -36,6 +37,9 @@ class ByteTransferApp extends StatelessWidget {
             fileService: context.read<FileServiceImpl>(),
           ),
         ),
+        Provider<DownloadServiceImpl>(
+          create: (_) => DownloadServiceImpl(),
+        ),
         // Create and initialize app state manager
         ChangeNotifierProvider<AppStateManager>(
           create: (context) => AppStateManager(
@@ -43,6 +47,7 @@ class ByteTransferApp extends StatelessWidget {
             networkService: context.read<NetworkServiceImpl>(),
             httpServerService: context.read<HTTPServerServiceImpl>(),
             permissionService: context.read<PermissionServiceImpl>(),
+            downloadService: context.read<DownloadServiceImpl>(),
           ),
           child: const SizedBox.shrink(),
         ),

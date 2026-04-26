@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:byte_transfer/app/app_state_manager.dart';
+import 'package:byte_transfer/services/download_service.dart';
 
 class ReceiverScreen extends StatefulWidget {
   const ReceiverScreen({Key? key}) : super(key: key);
@@ -189,7 +192,7 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
     );
   }
 
-  void _handleConnect() {
+  void _handleConnect() async {
     final link = _linkController.text.trim();
     if (link.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -198,18 +201,148 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
       return;
     }
 
-    // TODO: Implement file download from link
-    setState(() {
-      _isLoading = true;
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        _isLoading = false;
-      });
+    // Validate URL format
+    if (!link.startsWith('http://') && !link.startsWith('https://')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('File download feature coming soon')),
+        const SnackBar(content: Text('Share link must start with http:// or https://')),
       );
-    });
+      return;
+    }
+
+    // Connect to remote server
+    final stateManager = context.read<AppStateManager>();
+    await stateManager.connectToRemoteServer(link);
+
+    if (stateManager.error != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(stateManager.error!)),
+        );
+      }
+    } else if (stateManager.remoteFiles.isNotEmpty) {
+      // Show file selection dialog
+      if (mounted) {
+        _showFileSelectionDialog(context, stateManager);
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No files available on remote server')),
+        );
+      }
+    }
+  }
+
+  void _showFileSelectionDialog(
+    BuildContext context,
+    AppStateManager stateManager,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Available Files'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            itemCount: stateManager.remoteFiles.length,
+            itemBuilder: (context, index) {
+              final file = stateManager.remoteFiles[index];
+              return ListTile(
+                title: Text(file.name),
+                subtitle: Text(_formatFileSize(file.size)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _downloadFile(context, stateManager, file);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _downloadFile(
+    BuildContext context,
+    AppStateManager stateManager,
+    RemoteFileMetadata file,
+  ) async {
+    final uri = Uri.parse(_linkController.text);
+    final baseUrl = '${uri.scheme}://${uri.host}:${uri.port}';
+
+    await stateManager.downloadRemoteFile(
+      baseUrl: baseUrl,
+      fileId: file.id,
+      fileName: file.name,
+    );
+
+    if (mounted) {
+      _showDownloadProgressDialog(context, stateManager);
+    }
+  }
+
+  void _showDownloadProgressDialog(
+    BuildContext context,
+    AppStateManager stateManager,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Downloading...'),
+        content: Consumer<AppStateManager>(
+          builder: (context, manager, _) {
+            final progress = manager.downloadProgress;
+            if (progress == null) {
+              return const CircularProgressIndicator();
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(
+                  value: progress.percentComplete / 100,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '${progress.percentComplete.toStringAsFixed(1)}%',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_formatFileSize(progress.bytesReceived)} / '
+                  '${progress.totalBytes != null ? _formatFileSize(progress.totalBytes!) : "?"}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              stateManager.cancelDownload();
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 }
