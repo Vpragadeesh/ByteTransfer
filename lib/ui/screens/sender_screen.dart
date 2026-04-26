@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:byte_transfer/app/app_state_manager.dart';
 import 'package:byte_transfer/models/shared_file.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class SenderScreen extends StatefulWidget {
   const SenderScreen({Key? key}) : super(key: key);
@@ -66,6 +68,72 @@ class _SenderScreenState extends State<SenderScreen> {
                   ],
                 ),
               ),
+              // Share link section (when server is running)
+              if (state.isServerRunning && state.shareLink != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.green.shade50,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Share Link',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.green.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Text(
+                                  state.shareLink!,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () {
+                              Clipboard.setData(ClipboardData(text: state.shareLink!));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Share link copied to clipboard'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.copy),
+                            tooltip: 'Copy to clipboard',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // QR Code
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.green.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: _buildQrCode(state.shareLink!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               // Files list
               Expanded(
                 child: state.sharedFiles.isEmpty
@@ -185,6 +253,30 @@ class _SenderScreenState extends State<SenderScreen> {
         return const Icon(Icons.archive, color: Colors.brown);
       default:
         return const Icon(Icons.description, color: Colors.grey);
+    }
+  }
+
+  Widget _buildQrCode(String shareLink) {
+    try {
+      return QrImageView(
+        data: shareLink,
+        version: QrVersions.auto,
+        size: 200.0,
+        gapless: true,
+      );
+    } catch (e) {
+      // Fallback if QR generation fails
+      return Container(
+        width: 200,
+        height: 200,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Center(
+          child: Text('QR Code\nGeneration\nFailed'),
+        ),
+      );
     }
   }
 }
