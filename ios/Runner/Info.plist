@@ -66,5 +66,41 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- File access permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ByteTransfer needs access to your photos and files to share them</string>
+	<key>NSPhotoLibraryAddOnlyUsageDescription</key>
+	<string>ByteTransfer needs access to save files</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>ByteTransfer needs access to your documents</string>
+	<!-- Network permissions -->
+	<key>NSBonjourServiceTypes</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_bytetransfer._tcp</string>
+	</array>
+	<!-- Local network permission (iOS 14+) -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ByteTransfer needs access to your local network to share files</string>
+	<key>NSBonjourServiceTypes</key>
+	<array>
+		<string>_http._tcp</string>
+	</array>
+	<!-- Allow arbitrary loads for local network addresses -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<false/>
+		<key>NSAllowsArbitraryLoadsForMedia</key>
+		<false/>
+	</dict>
+	<!-- Required for background operation (optional, for future) -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
 </dict>
 </plist>
