@@ -81,11 +81,13 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
                     TextField(
                       controller: _linkController,
                       decoration: InputDecoration(
-                        hintText: 'e.g., http://192.168.1.100:8080/file',
+                        hintText: 'e.g., http://192.168.1.100:8080/file/abc123xyz',
                         border: InputBorder.none,
                         isDense: true,
                       ),
                       readOnly: _isLoading,
+                      maxLines: 2,
+                      minLines: 1,
                     ),
                   ],
                 ),
@@ -122,8 +124,8 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
                     _buildInstructionStep(1, 'Open ByteTransfer on the sender device'),
                     _buildInstructionStep(2, 'Tap "Send Files" and select files to share'),
                     _buildInstructionStep(3, 'Tap "Start Sharing"'),
-                    _buildInstructionStep(4, 'Copy the share link'),
-                    _buildInstructionStep(5, 'Paste it here and tap "Connect"'),
+                    _buildInstructionStep(4, 'Expand a file and copy its share link'),
+                    _buildInstructionStep(5, 'Paste the complete link here and tap "Connect"'),
                   ],
                 ),
               ),
@@ -209,26 +211,76 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
       return;
     }
 
-    // Connect to remote server
-    final stateManager = context.read<AppStateManager>();
-    await stateManager.connectToRemoteServer(link);
+    setState(() {
+      _isLoading = true;
+    });
 
-    if (stateManager.error != null) {
+    try {
+      final uri = Uri.parse(link);
+      final pathSegments = uri.pathSegments;
+
+      // Check if this is a direct file link (e.g., http://IP:PORT/file/abc123)
+      if (pathSegments.length >= 2 && pathSegments[0] == 'file') {
+        final fileId = pathSegments[1];
+        final baseUrl = '${uri.scheme}://${uri.host}:${uri.port}';
+
+        // Try to get file metadata from /files endpoint
+        final stateManager = context.read<AppStateManager>();
+        await stateManager.connectToRemoteServer(baseUrl);
+
+        if (stateManager.error != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(stateManager.error!)),
+            );
+          }
+        } else {
+          // Find the specific file
+          final file = stateManager.remoteFiles.firstWhere(
+            (f) => f.id == fileId,
+            orElse: () => throw Exception('File not found on server'),
+          );
+
+          if (mounted) {
+            // Download this specific file
+            _downloadFile(context, stateManager, file);
+          }
+        }
+      } else {
+        // This is a base URL, show file list
+        final stateManager = context.read<AppStateManager>();
+        await stateManager.connectToRemoteServer(link);
+
+        if (stateManager.error != null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(stateManager.error!)),
+            );
+          }
+        } else if (stateManager.remoteFiles.isNotEmpty) {
+          // Show file selection dialog
+          if (mounted) {
+            _showFileSelectionDialog(context, stateManager);
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No files available on remote server')),
+            );
+          }
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(stateManager.error!)),
+          SnackBar(content: Text('Error: $e')),
         );
       }
-    } else if (stateManager.remoteFiles.isNotEmpty) {
-      // Show file selection dialog
+    } finally {
       if (mounted) {
-        _showFileSelectionDialog(context, stateManager);
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No files available on remote server')),
-        );
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }

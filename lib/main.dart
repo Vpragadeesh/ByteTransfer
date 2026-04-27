@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import 'package:provider/provider.dart';
 import 'package:byte_transfer/app/app_state_manager.dart';
 import 'package:byte_transfer/services/file_service_impl.dart';
+import 'package:byte_transfer/services/file_service_linux.dart';
+import 'package:byte_transfer/services/file_service.dart';
 import 'package:byte_transfer/services/network_service_impl.dart';
 import 'package:byte_transfer/services/http_server_service_impl.dart';
 import 'package:byte_transfer/services/permission_service_impl.dart';
@@ -22,9 +26,15 @@ class ByteTransferApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Create service instances
-        Provider<FileServiceImpl>(
-          create: (_) => FileServiceImpl(),
+        // Create service instances with platform-specific file service
+        Provider<FileService>(
+          create: (_) {
+            // Use Linux-specific file service on Linux, otherwise use default
+            if (!kIsWeb && Platform.isLinux) {
+              return FileServiceLinux();
+            }
+            return FileServiceImpl();
+          },
         ),
         Provider<NetworkServiceImpl>(
           create: (_) => NetworkServiceImpl(),
@@ -34,7 +44,7 @@ class ByteTransferApp extends StatelessWidget {
         ),
         Provider<HTTPServerServiceImpl>(
           create: (context) => HTTPServerServiceImpl(
-            fileService: context.read<FileServiceImpl>(),
+            fileService: context.read<FileService>(),
           ),
         ),
         Provider<DownloadServiceImpl>(
@@ -43,7 +53,7 @@ class ByteTransferApp extends StatelessWidget {
         // Create and initialize app state manager
         ChangeNotifierProvider<AppStateManager>(
           create: (context) => AppStateManager(
-            fileService: context.read<FileServiceImpl>(),
+            fileService: context.read<FileService>(),
             networkService: context.read<NetworkServiceImpl>(),
             httpServerService: context.read<HTTPServerServiceImpl>(),
             permissionService: context.read<PermissionServiceImpl>(),
@@ -100,33 +110,8 @@ class _InitializingWrapperState extends State<_InitializingWrapper> {
           );
         }
 
-        if (!state.permissionsGranted) {
-          return Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.warning_amber_rounded, size: 64),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Permissions Required',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(state.error ?? 'Please grant required permissions'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      state.permissionService.openAppSettings();
-                    },
-                    child: const Text('Open App Settings'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
+        // Show home screen even if permissions aren't granted
+        // User can grant them when needed
         return const HomeScreen();
       },
     );

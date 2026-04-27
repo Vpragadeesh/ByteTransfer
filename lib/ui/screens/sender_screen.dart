@@ -76,59 +76,30 @@ class _SenderScreenState extends State<SenderScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Share Link',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.green.shade300),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Text(
-                                  state.shareLink!,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
+                          const Icon(Icons.info_outline, size: 20, color: Colors.green),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Server is running! Expand each file below to get its share link.',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: () {
-                              Clipboard.setData(ClipboardData(text: state.shareLink!));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Share link copied to clipboard'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.copy),
-                            tooltip: 'Copy to clipboard',
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      // QR Code
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.green.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: _buildQrCode(state.shareLink!),
-                        ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Server: ${state.shareLink}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Files: ${state.sharedFiles.length}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -217,16 +188,86 @@ class _SenderScreenState extends State<SenderScreen> {
     AppStateManager state,
     SharedFile file,
   ) {
-    return ListTile(
-      leading: _getFileIcon(file.extension),
-      title: Text(file.name),
-      subtitle: Text(file.formattedSize),
-      trailing: state.isServerRunning
-          ? null
-          : IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => state.removeFile(file.id),
+    final fileLink = state.isServerRunning && state.serverInfo != null
+        ? '${state.serverInfo!.baseUrl}/file/${file.id}'
+        : null;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ExpansionTile(
+        leading: _getFileIcon(file.extension),
+        title: Text(file.name),
+        subtitle: Text(file.formattedSize),
+        trailing: state.isServerRunning
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => state.removeFile(file.id),
+              ),
+        children: [
+          if (fileLink != null) ...[
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Share Link:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: SelectableText(
+                            fileLink,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: fileLink));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Link copied for ${file.name}'),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.copy, size: 20),
+                        tooltip: 'Copy link',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _buildQrCode(fileLink),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
+        ],
+      ),
     );
   }
 

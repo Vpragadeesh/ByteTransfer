@@ -17,6 +17,8 @@ void main() {
 
     // Verify that app is initializing
     expect(find.byType(CircularProgressIndicator), findsWidgets);
+    
+    // Wait for initialization to complete with timeout
+    await tester.pumpAndSettle(const Duration(seconds: 15));
   });
 }
-

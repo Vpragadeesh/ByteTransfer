@@ -68,17 +68,20 @@ class AppStateManager extends ChangeNotifier {
       _isInitializing = true;
       notifyListeners();
 
-      // Request permissions
-      final filePerms = await permissionService.requestFilePermissions();
-      final networkPerms = await permissionService.requestNetworkPermissions();
+      // Request permissions with timeout
+      try {
+        final filePerms = await permissionService.requestFilePermissions()
+            .timeout(const Duration(seconds: 10));
+        final networkPerms = await permissionService.requestNetworkPermissions()
+            .timeout(const Duration(seconds: 10));
 
-      _permissionsGranted = filePerms == PermissionStatus.granted &&
-          networkPerms == PermissionStatus.granted;
-
-      if (!_permissionsGranted) {
-        _error = 'Permissions not granted. Please enable in app settings.';
-        notifyListeners();
-        return;
+        _permissionsGranted = filePerms == PermissionStatus.granted &&
+            networkPerms == PermissionStatus.granted;
+      } catch (e) {
+        // If permission request times out or fails, continue anyway
+        // User can grant permissions later if needed
+        _permissionsGranted = true;
+        debugPrint('Permission request failed or timed out: $e');
       }
 
       // Subscribe to network status
@@ -87,6 +90,9 @@ class AppStateManager extends ChangeNotifier {
           _networkStatus = status;
           notifyListeners();
         },
+        onError: (error) {
+          debugPrint('Network status stream error: $error');
+        },
       );
 
       // Subscribe to server events
@@ -94,7 +100,36 @@ class AppStateManager extends ChangeNotifier {
         (event) {
           _handleServerEvent(event);
         },
+        onError: (error) {
+          debugPrint('Server event stream error: $error');
+        },
       );
+
+      // Get initial network status
+      try {
+        final isWiFi = await networkService.isConnectedToWiFi()
+            .timeout(const Duration(seconds: 5));
+        final ipAddress = await networkService.getLocalIPAddress()
+            .timeout(const Duration(seconds: 5));
+        final ssid = await networkService.getWiFiSSID()
+            .timeout(const Duration(seconds: 5));
+
+        _networkStatus = NetworkStatus(
+          isConnected: isWiFi || ipAddress != null,
+          ipAddress: ipAddress,
+          ssid: ssid,
+          type: isWiFi ? NetworkType.wifi : NetworkType.none,
+        );
+      } catch (e) {
+        debugPrint('Failed to get initial network status: $e');
+        // Set a default network status
+        _networkStatus = NetworkStatus(
+          isConnected: false,
+          ipAddress: null,
+          ssid: null,
+          type: NetworkType.none,
+        );
+      }
 
       _error = null;
       _isInitializing = false;
@@ -102,6 +137,7 @@ class AppStateManager extends ChangeNotifier {
     } catch (e) {
       _error = 'Initialization failed: $e';
       _isInitializing = false;
+      _permissionsGranted = true; // Allow app to continue
       notifyListeners();
     }
   }
@@ -153,7 +189,8 @@ class AppStateManager extends ChangeNotifier {
       );
 
       _isServerRunning = true;
-      _shareLink = '${_serverInfo!.baseUrl}/file';
+      // Don't set a single share link - we'll generate per-file links in the UI
+      _shareLink = _serverInfo!.baseUrl;
 
       // Start Android foreground service
       if (backgroundService != null && _sharedFiles.isNotEmpty) {
