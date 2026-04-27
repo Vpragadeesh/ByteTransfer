@@ -6,6 +6,8 @@ import 'package:byte_transfer/services/network_service.dart';
 import 'package:byte_transfer/services/http_server_service.dart';
 import 'package:byte_transfer/services/permission_service.dart';
 import 'package:byte_transfer/services/download_service.dart';
+import 'package:byte_transfer/services/android_background_service.dart';
+import 'package:byte_transfer/services/notification_service.dart';
 
 /// Application state management using ChangeNotifier
 class AppStateManager extends ChangeNotifier {
@@ -15,6 +17,7 @@ class AppStateManager extends ChangeNotifier {
   final HTTPServerService httpServerService;
   final PermissionService permissionService;
   final DownloadService? downloadService;
+  final AndroidBackgroundService? backgroundService;
 
   // State variables
   bool _isInitializing = true;
@@ -40,6 +43,7 @@ class AppStateManager extends ChangeNotifier {
     required this.httpServerService,
     required this.permissionService,
     this.downloadService,
+    this.backgroundService,
   });
 
   // Getters
@@ -151,6 +155,14 @@ class AppStateManager extends ChangeNotifier {
       _isServerRunning = true;
       _shareLink = '${_serverInfo!.baseUrl}/file';
 
+      // Start Android foreground service
+      if (backgroundService != null && _sharedFiles.isNotEmpty) {
+        await backgroundService!.startForegroundService(
+          title: 'ByteTransfer',
+          body: 'Sharing ${_sharedFiles.length} file(s)',
+        );
+      }
+
       notifyListeners();
     } catch (e) {
       _error = 'Failed to start server: $e';
@@ -163,6 +175,12 @@ class AppStateManager extends ChangeNotifier {
   Future<void> stopServer() async {
     try {
       await httpServerService.stopServer();
+      
+      // Stop Android foreground service
+      if (backgroundService != null) {
+        await backgroundService!.stopForegroundService();
+      }
+      
       _isServerRunning = false;
       _shareLink = null;
       _sharedFiles = [];
@@ -317,6 +335,7 @@ class AppStateManager extends ChangeNotifier {
     _eventSubscription.cancel();
     _downloadSubscription?.cancel();
     httpServerService.dispose();
+    backgroundService?.dispose();
     super.dispose();
   }
 }

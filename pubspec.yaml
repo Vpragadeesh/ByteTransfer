@@ -39,7 +39,7 @@ dependencies:
   shelf_router: ^1.1.4
 
   # File Picker
-  file_picker: ^6.1.1
+  file_picker: ^8.0.0
 
   # Network Info
   network_info_plus: ^5.0.1
@@ -64,12 +64,6 @@ dependencies:
 
   # QR Code Scanner (optional, for receiver)
   mobile_scanner: ^3.4.0
-
-  # Local Notifications (for background service)
-  flutter_local_notifications: ^16.0.0
-
-  # Battery Status
-  battery_plus: ^2.0.0
 
 dev_dependencies:
   flutter_test:
