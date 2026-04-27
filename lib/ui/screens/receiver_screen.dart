@@ -22,10 +22,26 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final toggleTheme = Provider.of<Function>(context, listen: false);
+    final currentTheme = Theme.of(context).brightness;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Receive Files'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              currentTheme == Brightness.dark 
+                ? Icons.light_mode 
+                : Icons.dark_mode,
+            ),
+            onPressed: () => toggleTheme(),
+            tooltip: currentTheme == Brightness.dark 
+              ? 'Switch to Light Mode' 
+              : 'Switch to Dark Mode',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -40,7 +56,7 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
                   Icon(
                     Icons.download_for_offline,
                     size: 64,
-                    color: Colors.blue.shade300,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -63,7 +79,9 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor,
+                  ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -110,8 +128,12 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
+                  color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,8 +156,12 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor,
+                    width: 1,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

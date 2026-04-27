@@ -19,13 +19,33 @@ void main() async {
   runApp(const ByteTransferApp());
 }
 
-class ByteTransferApp extends StatelessWidget {
+class ByteTransferApp extends StatefulWidget {
   const ByteTransferApp({Key? key}) : super(key: key);
+
+  @override
+  State<ByteTransferApp> createState() => _ByteTransferAppState();
+}
+
+class _ByteTransferAppState extends State<ByteTransferApp> {
+  ThemeMode _themeMode = ThemeMode.dark; // Default to dark theme
+
+  void _toggleTheme() {
+    setState(() {
+      _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Provide theme toggle function
+        Provider<Function>(
+          create: (_) => _toggleTheme,
+        ),
+        Provider<ThemeMode>(
+          create: (_) => _themeMode,
+        ),
         // Create service instances with platform-specific file service
         Provider<FileService>(
           create: (_) {
@@ -64,11 +84,124 @@ class ByteTransferApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'ByteTransfer',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-        ),
+        themeMode: _themeMode,
+        theme: _buildLightTheme(),
+        darkTheme: _buildDarkTheme(),
         home: const _InitializingWrapper(),
+      ),
+    );
+  }
+
+  // Light theme
+  ThemeData _buildLightTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.light(
+        primary: Colors.blue.shade700,
+        secondary: Colors.blueAccent,
+        surface: Colors.white,
+        background: Colors.grey.shade50,
+        error: Colors.red.shade700,
+      ),
+      scaffoldBackgroundColor: Colors.grey.shade50,
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  // AMOLED Dark theme (GitHub Dark inspired)
+  ThemeData _buildDarkTheme() {
+    const Color amoledBlack = Color(0xFF0D1117); // GitHub dark background
+    const Color surfaceBlack = Color(0xFF161B22); // GitHub dark surface
+    const Color borderGray = Color(0xFF30363D); // GitHub dark border
+    const Color textPrimary = Color(0xFFC9D1D9); // GitHub dark text
+    const Color textSecondary = Color(0xFF8B949E); // GitHub dark muted text
+    const Color accentBlue = Color(0xFF58A6FF); // GitHub blue
+    const Color accentGreen = Color(0xFF3FB950); // GitHub green
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme.dark(
+        primary: accentBlue,
+        secondary: accentGreen,
+        surface: surfaceBlack,
+        background: amoledBlack,
+        error: Color(0xFFF85149), // GitHub red
+        onPrimary: amoledBlack,
+        onSecondary: amoledBlack,
+        onSurface: textPrimary,
+        onBackground: textPrimary,
+      ),
+      scaffoldBackgroundColor: amoledBlack,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: surfaceBlack,
+        foregroundColor: textPrimary,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        color: surfaceBlack,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: borderGray, width: 1),
+        ),
+      ),
+      dividerColor: borderGray,
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: textPrimary),
+        bodyMedium: TextStyle(color: textPrimary),
+        bodySmall: TextStyle(color: textSecondary),
+        titleLarge: TextStyle(color: textPrimary),
+        titleMedium: TextStyle(color: textPrimary),
+        titleSmall: TextStyle(color: textSecondary),
+      ),
+      iconTheme: const IconThemeData(color: textSecondary),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: amoledBlack,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: borderGray),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: borderGray),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: accentBlue, width: 2),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: accentBlue,
+          foregroundColor: amoledBlack,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: accentBlue,
+          side: const BorderSide(color: borderGray),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
     );
   }

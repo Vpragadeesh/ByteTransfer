@@ -9,10 +9,26 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final toggleTheme = Provider.of<Function>(context, listen: false);
+    final currentTheme = Theme.of(context).brightness;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('ByteTransfer'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              currentTheme == Brightness.dark 
+                ? Icons.light_mode 
+                : Icons.dark_mode,
+            ),
+            onPressed: () => toggleTheme(),
+            tooltip: currentTheme == Brightness.dark 
+              ? 'Switch to Light Mode' 
+              : 'Switch to Dark Mode',
+          ),
+        ],
       ),
       body: Consumer<AppStateManager>(
         builder: (context, state, _) {
@@ -32,8 +48,12 @@ class HomeScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade100,
+                          color: Colors.red.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +65,11 @@ class HomeScreen extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     state.error!,
-                                    style: const TextStyle(color: Colors.red),
+                                    style: TextStyle(
+                                      color: Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.red.shade300
+                                        : Colors.red.shade700,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -115,26 +139,35 @@ class HomeScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                          width: 1,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'About ByteTransfer',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
+                          Text(
                             'Share files wirelessly over your local network. No internet required.',
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           _buildInfoRow(
+                            context,
                             'Network Status',
                             state.networkStatus?.isConnected ?? false
                                 ? 'Connected (${state.networkStatus!.type.name})'
@@ -146,9 +179,10 @@ class HomeScreen extends StatelessWidget {
                           if (state.networkStatus?.ipAddress != null) ...[
                             const SizedBox(height: 8),
                             _buildInfoRow(
+                              context,
                               'Local IP',
                               state.networkStatus!.ipAddress!,
-                              Colors.blue,
+                              Theme.of(context).colorScheme.primary,
                             ),
                           ],
                         ],
@@ -194,7 +228,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, Color color) {
+  Widget _buildInfoRow(BuildContext context, String label, String value, Color color) {
     return Row(
       children: [
         Container(
@@ -211,11 +245,18 @@ class HomeScreen extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
             ),
             Text(
               value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ],
         ),

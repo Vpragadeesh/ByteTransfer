@@ -26,10 +26,26 @@ class _SenderScreenState extends State<SenderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final toggleTheme = Provider.of<Function>(context, listen: false);
+    final currentTheme = Theme.of(context).brightness;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Send Files'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(
+              currentTheme == Brightness.dark 
+                ? Icons.light_mode 
+                : Icons.dark_mode,
+            ),
+            onPressed: () => toggleTheme(),
+            tooltip: currentTheme == Brightness.dark 
+              ? 'Switch to Light Mode' 
+              : 'Switch to Dark Mode',
+          ),
+        ],
       ),
       body: Consumer<AppStateManager>(
         builder: (context, state, _) {
@@ -38,7 +54,15 @@ class _SenderScreenState extends State<SenderScreen> {
               // Status section
               Container(
                 padding: const EdgeInsets.all(16),
-                color: Colors.blue.shade50,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context).dividerColor,
+                      width: 1,
+                    ),
+                  ),
+                ),
                 child: Row(
                   children: [
                     if (state.isServerRunning)
@@ -72,7 +96,15 @@ class _SenderScreenState extends State<SenderScreen> {
               if (state.isServerRunning && state.shareLink != null) ...[
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.green.shade50,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondary.withOpacity(0.1),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -112,7 +144,11 @@ class _SenderScreenState extends State<SenderScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.folder_open, size: 64, color: Colors.grey.shade300),
+                            Icon(
+                              Icons.folder_open,
+                              size: 64,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                            ),
                             const SizedBox(height: 16),
                             const Text(
                               'No files selected',
@@ -225,9 +261,11 @@ class _SenderScreenState extends State<SenderScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
+                            color: Theme.of(context).colorScheme.surface,
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
                           ),
                           child: SelectableText(
                             fileLink,
@@ -253,14 +291,7 @@ class _SenderScreenState extends State<SenderScreen> {
                   ),
                   const SizedBox(height: 12),
                   Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: _buildQrCode(fileLink),
-                    ),
+                    child: _buildQrCode(fileLink),
                   ),
                 ],
               ),
@@ -299,11 +330,20 @@ class _SenderScreenState extends State<SenderScreen> {
 
   Widget _buildQrCode(String shareLink) {
     try {
-      return QrImageView(
-        data: shareLink,
-        version: QrVersions.auto,
-        size: 200.0,
-        gapless: true,
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white, // Always white background for QR code
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: QrImageView(
+          data: shareLink,
+          version: QrVersions.auto,
+          size: 200.0,
+          gapless: true,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+        ),
       );
     } catch (e) {
       // Fallback if QR generation fails
@@ -311,11 +351,16 @@ class _SenderScreenState extends State<SenderScreen> {
         width: 200,
         height: 200,
         decoration: BoxDecoration(
+          color: Colors.white,
           border: Border.all(color: Colors.grey),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Center(
-          child: Text('QR Code\nGeneration\nFailed'),
+          child: Text(
+            'QR Code\nGeneration\nFailed',
+            style: TextStyle(color: Colors.black),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
