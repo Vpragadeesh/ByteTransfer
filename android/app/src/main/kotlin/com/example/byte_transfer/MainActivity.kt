@@ -18,7 +18,7 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "startForegroundService" -> {
-                        val title = call.argument<String>("title") ?: "ByteTransfer"
+                        val title = call.argument<String>("title") ?: "Libre-Send"
                         val body = call.argument<String>("body") ?: "Sharing files..."
                         startForegroundServiceInternal(title, body)
                         result.success(true)
@@ -33,7 +33,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun startForegroundServiceInternal(title: String, body: String) {
-        val intent = Intent(this, ByteTransferForegroundService::class.java)
+        val intent = Intent(this, LibreSendForegroundService::class.java)
         intent.putExtra("title", title)
         intent.putExtra("body", body)
 
@@ -45,7 +45,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun stopForegroundServiceInternal() {
-        val intent = Intent(this, ByteTransferForegroundService::class.java)
+        val intent = Intent(this, LibreSendForegroundService::class.java)
         stopService(intent)
     }
 }

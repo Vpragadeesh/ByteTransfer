@@ -256,7 +256,7 @@ class AppStateManager extends ChangeNotifier {
       // Start Android foreground service
       if (backgroundService != null && _sharedFiles.isNotEmpty) {
         await backgroundService!.startForegroundService(
-          title: 'ByteTransfer',
+          title: 'Libre-Send',
           body: 'Sharing ${_sharedFiles.length} file(s)',
         );
       }

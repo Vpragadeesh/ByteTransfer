@@ -136,7 +136,7 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    _buildInstructionStep(1, 'Open ByteTransfer on the sender device'),
+                    _buildInstructionStep(1, 'Open Libre-Send on the sender device'),
                     _buildInstructionStep(2, 'Tap "Send Files" and select files to share'),
                     _buildInstructionStep(3, 'Tap "Start Sharing"'),
                     _buildInstructionStep(4, 'Expand a file and copy its share link'),

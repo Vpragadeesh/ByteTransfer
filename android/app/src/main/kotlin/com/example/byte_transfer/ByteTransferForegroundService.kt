@@ -8,11 +8,11 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
 /**
- * Foreground service for ByteTransfer
+ * Foreground service for Libre-Send
  * Keeps the HTTP server running while the app is backgrounded
  * Displays a persistent notification to inform the user
  */
-class ByteTransferForegroundService : Service() {
+class LibreSendForegroundService : Service() {
     companion object {
         const val NOTIFICATION_ID = 1
         const val CHANNEL_ID = "byte_transfer_foreground_service"
@@ -26,7 +26,7 @@ class ByteTransferForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val title = intent?.getStringExtra("title") ?: "ByteTransfer"
+        val title = intent?.getStringExtra("title") ?: "Libre-Send"
         val body = intent?.getStringExtra("body") ?: "Sharing files..."
 
         // Create and show notification

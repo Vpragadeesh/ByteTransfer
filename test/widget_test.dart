@@ -11,9 +11,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:byte_transfer/main.dart';
 
 void main() {
-  testWidgets('ByteTransferApp initializes', (WidgetTester tester) async {
+  testWidgets('LibreSendApp initializes', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const ByteTransferApp());
+    await tester.pumpWidget(const LibreSendApp());
 
     // Verify that app is initializing
     expect(find.byType(CircularProgressIndicator), findsWidgets);

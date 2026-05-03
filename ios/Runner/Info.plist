@@ -68,11 +68,11 @@
 	</array>
 	<!-- File access permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ByteTransfer needs access to your photos and files to share them</string>
+	<string>Libre-Send needs access to your photos and files to share them</string>
 	<key>NSPhotoLibraryAddOnlyUsageDescription</key>
-	<string>ByteTransfer needs access to save files</string>
+	<string>Libre-Send needs access to save files</string>
 	<key>NSDocumentsFolderUsageDescription</key>
-	<string>ByteTransfer needs access to your documents</string>
+	<string>Libre-Send needs access to your documents</string>
 	<!-- Network permissions -->
 	<key>NSBonjourServiceTypes</key>
 	<array>
@@ -81,7 +81,7 @@
 	</array>
 	<!-- Local network permission (iOS 14+) -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>ByteTransfer needs access to your local network to share files</string>
+	<string>Libre-Send needs access to your local network to share files</string>
 	<key>NSBonjourServiceTypes</key>
 	<array>
 		<string>_http._tcp</string>

@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ByteTransfer'),
+        title: const Text('Libre-Send'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -119,7 +119,7 @@ class HomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'About ByteTransfer',
+                            'About Libre-Send',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

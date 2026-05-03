@@ -178,7 +178,7 @@ class HTTPServerServiceImpl implements HTTPServerService {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ByteTransfer - Receive Files</title>
+  <title>Libre-Send - Receive Files</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes fadeIn {
@@ -199,7 +199,7 @@ class HTTPServerServiceImpl implements HTTPServerService {
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
         </svg>
       </div>
-      <h1 class="text-4xl font-bold text-white mb-2">ByteTransfer</h1>
+      <h1 class="text-4xl font-bold text-white mb-2">Libre-Send</h1>
       <p class="text-gray-400">Receive files wirelessly over your local network</p>
     </div>
 
@@ -268,7 +268,7 @@ class HTTPServerServiceImpl implements HTTPServerService {
 
     <!-- Footer -->
     <div class="text-center text-gray-500 text-sm">
-      <p>ByteTransfer v1.0.0 • No internet required • Files stay on your local network</p>
+      <p>Libre-Send v1.0.0 • No internet required • Files stay on your local network</p>
     </div>
   </div>
 

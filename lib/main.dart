@@ -16,17 +16,17 @@ import 'package:byte_transfer/ui/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ByteTransferApp());
+  runApp(const LibreSendApp());
 }
 
-class ByteTransferApp extends StatefulWidget {
-  const ByteTransferApp({Key? key}) : super(key: key);
+class LibreSendApp extends StatefulWidget {
+  const LibreSendApp({Key? key}) : super(key: key);
 
   @override
-  State<ByteTransferApp> createState() => _ByteTransferAppState();
+  State<LibreSendApp> createState() => _LibreSendAppState();
 }
 
-class _ByteTransferAppState extends State<ByteTransferApp> {
+class _LibreSendAppState extends State<LibreSendApp> {
   ThemeMode _themeMode = ThemeMode.dark;
 
   void _toggleTheme() {
@@ -79,7 +79,7 @@ class _ByteTransferAppState extends State<ByteTransferApp> {
         ),
       ],
       child: MaterialApp(
-        title: 'ByteTransfer',
+        title: 'Libre-Send',
         themeMode: _themeMode,
         theme: _buildLightTheme(),
         darkTheme: _buildDarkTheme(),
@@ -232,7 +232,7 @@ class _InitializingWrapperState extends State<_InitializingWrapper> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Initializing ByteTransfer...'),
+                  Text('Initializing Libre-Send...'),
                 ],
               ),
             ),
