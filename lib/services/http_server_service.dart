@@ -1,4 +1,5 @@
 import 'package:byte_transfer/models/models.dart';
+import 'package:byte_transfer/models/permissions.dart';
 
 enum ServerErrorType {
   portInUse,
@@ -23,6 +24,9 @@ abstract class HTTPServerService {
 
   /// Register file for serving
   void registerFile(SharedFile file);
+
+  /// Register file with permission support for serving
+  void registerFileWithPermissions(SharedFileWithPermissions file);
 
   /// Unregister file from serving
   void unregisterFile(String fileId);

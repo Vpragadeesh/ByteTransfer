@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📥</text></svg>" />
+    <title>📥 LocalShare Receiver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #252525 100%);
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 50px auto;
+        background-color: #1e1e1e;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        border: 1px solid #333333;
+        padding: 30px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      h1 {
+        color: #e2e8f0;
+        font-size: 2em;
+        margin-bottom: 10px;
+      }
+
+      .receiver-banner {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        padding: 15px;
+        border-radius: 8px;
+        color: white;
+        font-size: 14px;
+        margin-top: 15px;
+        display: none;
+      }
+
+      .receiver-banner.show {
+        display: block;
+      }
+
+      .receiver-name {
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .receiver-roles {
+        margin-top: 8px;
+        font-size: 12px;
+        opacity: 0.9;
+      }
+
+      .permission-expired {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        padding: 20px;
+        text-align: center;
+        color: white;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .files-section {
+        margin-top: 30px;
+      }
+
+      .files-section h2 {
+        color: #e2e8f0;
+        margin-bottom: 15px;
+        font-size: 1.4em;
+      }
+
+      .files-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .file-card {
+        background: #2a2a2a;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+      }
+
+      .file-card:hover {
+        background-color: #353535;
+        border-color: #606060;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+      }
+
+      .file-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .file-name {
+        color: #e2e8f0;
+        font-size: 15px;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-bottom: 5px;
+      }
+
+      .file-meta {
+        font-size: 12px;
+        color: #94a3b8;
+        display: flex;
+        gap: 15px;
+      }
+
+      .file-category {
+        display: inline-block;
+        background: #404040;
+        color: #cbd5e1;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-top: 4px;
+      }
+
+      .file-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+        margin-left: 10px;
+      }
+
+      .download-btn {
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        white-space: nowrap;
+        font-weight: 500;
+      }
+
+      .download-btn:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+      }
+
+      .download-btn:disabled {
+        background: #6b7280;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #94a3b8;
+      }
+
+      .empty-state-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+      }
+
+      .empty-state-text {
+        font-size: 15px;
+        margin-bottom: 10px;
+      }
+
+      .empty-state-hint {
+        font-size: 13px;
+        color: #64748b;
+      }
+
+      .progress-container {
+        margin-top: 20px;
+        padding: 20px;
+        background-color: #2a2a2a;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        display: none;
+      }
+
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .progress-title {
+        color: #e2e8f0;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .progress-cancel {
+        background: #404040;
+        color: #e2e8f0;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.3s ease;
+      }
+
+      .progress-cancel:hover {
+        background: #505050;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background-color: #353535;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+        border: 1px solid #404040;
+        margin-bottom: 10px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 50%, #10b981 100%);
+        width: 0%;
+        transition: width 0.3s ease;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+      }
+
+      .progress-text {
+        text-align: center;
+        font-size: 13px;
+        color: #e2e8f0;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .progress-details {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .theme-toggle:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 12px rgba(139, 92, 246, 0.4);
+      }
+
+      /* Light theme */
+      body.light-theme {
+        background: linear-gradient(to right, #74ebd5, #acb6e5);
+      }
+
+      body.light-theme .container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      body.light-theme h1 {
+        color: #2c3e50;
+      }
+
+      body.light-theme .receiver-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      body.light-theme .file-card {
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+      }
+
+      body.light-theme .file-card:hover {
+        background-color: #eef7fd;
+        border-color: #3498db;
+      }
+
+      @media screen and (max-width: 768px) {
+        .container {
+          margin: 20px;
+          padding: 20px;
+        }
+
+        h1 {
+          font-size: 1.5em;
+        }
+
+        .file-card {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .file-actions {
+          width: 100%;
+          margin-left: 0;
+          margin-top: 10px;
+        }
+
+        .download-btn {
+          flex: 1;
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
+      <div id="themeIcon">🌙</div>
+    </button>
+
+    <div class="container">
+      <div class="header">
+        <h1>📥 LocalShare</h1>
+        
+        <!-- Permission/Receiver Info Banner -->
+        <div id="receiverBanner" class="receiver-banner">
+          <div class="receiver-name" id="receiverName">Loading...</div>
+          <div class="receiver-roles" id="receiverRoles"></div>
+        </div>
+
+        <!-- Expired Token Warning -->
+        <div id="expiredWarning" class="permission-expired" style="display: none;">
+          ⏰ Your access has expired. Please request a new link from the sender.
+        </div>
+      </div>
+
+      <!-- Files Section -->
+      <div id="filesSection" class="files-section">
+        <h2>Available Files</h2>
+        <div class="files-grid" id="filesGrid">
+          <div class="empty-state">
+            <div class="empty-state-icon">⏳</div>
+            <div class="empty-state-text">Loading files...</div>
+            <div class="empty-state-hint">Checking your permissions...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download Progress -->
+      <div id="progressContainer" class="progress-container">
+        <div class="progress-header">
+          <div class="progress-title" id="progressTitle">Downloading...</div>
+          <button class="progress-cancel" id="cancelBtn">Cancel</button>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0%</div>
+        <div class="progress-details">
+          <span id="progressSize">0 B / 0 B</span>
+          <span id="progressSpeed">0 B/s</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Global state
+      let currentServerUrl = null;
+      let allFiles = [];
+      let currentReceiver = null;
+      let currentDownloadAbortController = null;
+
+      // Get server URL from window.location
+      function getServerUrl() {
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        const port = window.location.port;
+        return port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`;
+      }
+
+      // Extract token from URL
+      function getTokenFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('token');
+      }
+
+      // Decode token (must match Dart implementation)
+      function decodeToken(token) {
+        try {
+          const parts = token.split('.');
+          if (parts.length !== 2) return null;
+
+          const base64 = parts[0];
+          
+          try {
+            const base64Decoded = atob(base64);
+            const data = JSON.parse(base64Decoded);
+
+            // Check expiration
+            if (data.expiresAt) {
+              const expiresAt = new Date(data.expiresAt);
+              if (new Date() > expiresAt) {
+                return {
+                  expired: true,
+                  ...data
+                };
+              }
+            }
+
+            return {
+              expired: false,
+              id: data.id,
+              name: data.name,
+              roles: data.roles || [],
+              fileAccess: data.fileAccess || {},
+              generatedAt: data.generatedAt,
+              expiresAt: data.expiresAt,
+              email: data.email,
+            };
+          } catch (e) {
+            return null;
+          }
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Format bytes
+      function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      // Format date
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
+      }
+
+      // Display receiver info banner
+      function displayReceiverInfo() {
+        if (!currentReceiver) return;
+
+        const banner = document.getElementById('receiverBanner');
+        const nameEl = document.getElementById('receiverName');
+        const rolesEl = document.getElementById('receiverRoles');
+
+        nameEl.textContent = `👤 Welcome, ${currentReceiver.name}`;
+        rolesEl.innerHTML = `Access Level: <strong>${currentReceiver.roles.map(r => 
+          r.charAt(0).toUpperCase() + r.slice(1)).join(', ')}</strong>
+          ${currentReceiver.expiresAt ? ` • Expires: ${new Date(currentReceiver.expiresAt).toLocaleDateString()}` : ''}`;
+        
+        banner.classList.add('show');
+      }
+
+      // Initialize receiver
+      async function initializeReceiver() {
+        currentServerUrl = getServerUrl();
+        const token = getTokenFromUrl();
+
+        try {
+          // Decode token if present
+          if (token) {
+            currentReceiver = decodeToken(token);
+            
+            if (!currentReceiver) {
+              showError('Invalid access token');
+              return;
+            }
+
+            if (currentReceiver.expired) {
+              document.getElementById('expiredWarning').style.display = 'block';
+              document.getElementById('filesGrid').innerHTML = `
+                <div class="empty-state">
+                  <div class="empty-state-icon">🔒</div>
+                  <div class="empty-state-text">Access Expired</div>
+                  <div class="empty-state-hint">Your access link has expired. Please request a new one from the sender.</div>
+                </div>
+              `;
+              return;
+            }
+
+            displayReceiverInfo();
+          }
+
+          // Health check
+          const healthResponse = await fetch(`${currentServerUrl}/health`);
+          if (!healthResponse.ok) throw new Error('Server unavailable');
+
+          // Fetch files (with or without token)
+          const filesUrl = token 
+            ? `${currentServerUrl}/files?token=${encodeURIComponent(token)}`
+            : `${currentServerUrl}/files`;
+          
+          const filesResponse = await fetch(filesUrl);
+          if (!filesResponse.ok) throw new Error('Failed to fetch files');
+
+          const data = await filesResponse.json();
+          allFiles = data.files || [];
+          displayFiles();
+        } catch (err) {
+          showError(`Connection failed: ${err.message}`);
+        }
+      }
+
+      // Display files
+      function displayFiles() {
+        const filesGrid = document.getElementById('filesGrid');
+        filesGrid.innerHTML = '';
+
+        if (allFiles.length === 0) {
+          filesGrid.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📁</div>
+              <div class="empty-state-text">No files available</div>
+              <div class="empty-state-hint">
+                ${currentReceiver 
+                  ? 'You don\'t have access to any files with your current permissions' 
+                  : 'Public files are not available'}
+              </div>
+            </div>
+          `;
+          return;
+        }
+
+        allFiles.forEach((file) => {
+          const fileCard = document.createElement('div');
+          fileCard.className = 'file-card';
+          
+          let categoryHtml = '';
+          if (file.category) {
+            categoryHtml = `<div class="file-category">${escapeHtml(file.category)}</div>`;
+          }
+
+          fileCard.innerHTML = `
+            <div class="file-info">
+              <div class="file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</div>
+              <div class="file-meta">
+                <span>${formatBytes(file.size)}</span>
+                <span>${formatDate(file.sharedAt)}</span>
+              </div>
+              ${categoryHtml}
+            </div>
+            <div class="file-actions">
+              <button class="download-btn" 
+                      onclick="downloadFile('${file.id}', '${escapeHtml(file.name)}', ${file.size})">
+                ⬇ Download
+              </button>
+            </div>
+          `;
+          filesGrid.appendChild(fileCard);
+        });
+      }
+
+      // Download file
+      async function downloadFile(fileId, fileName, fileSize) {
+        const token = getTokenFromUrl();
+        const downloadUrl = token
+          ? `${currentServerUrl}/file/${fileId}?token=${encodeURIComponent(token)}`
+          : `${currentServerUrl}/file/${fileId}`;
+
+        currentDownloadAbortController = new AbortController();
+        const progressContainer = document.getElementById('progressContainer');
+        
+        progressContainer.style.display = 'block';
+        document.getElementById('progressTitle').textContent = `Downloading: ${fileName}`;
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('progressText').textContent = '0%';
+
+        try {
+          const response = await fetch(downloadUrl, {
+            signal: currentDownloadAbortController.signal,
+          });
+
+          if (response.status === 403) {
+            throw new Error('Access denied - insufficient permissions');
+          }
+          if (!response.ok) {
+            throw new Error(`Server error (${response.status})`);
+          }
+
+          const reader = response.body.getReader();
+          const chunks = [];
+          let receivedLength = 0;
+          let startTime = Date.now();
+          let lastUpdate = startTime;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            chunks.push(value);
+            receivedLength += value.length;
+
+            const now = Date.now();
+            if (now - lastUpdate >= 100) {
+              updateProgress(receivedLength, fileSize, startTime, lastUpdate, now);
+              lastUpdate = now;
+            }
+          }
+
+          // Final update
+          updateProgress(receivedLength, fileSize, startTime, lastUpdate, Date.now());
+
+          // Save file
+          const blob = new Blob(chunks);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          setTimeout(() => {
+            progressContainer.style.display = 'none';
+          }, 2000);
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            showError(`Download failed: ${err.message}`);
+            progressContainer.style.display = 'none';
+          }
+        }
+      }
+
+      // Update progress
+      function updateProgress(received, total, startTime, lastTime, now) {
+        const percent = (received / total) * 100;
+        const elapsedSeconds = (now - startTime) / 1000;
+
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('progressText').textContent = Math.round(percent) + '%';
+        document.getElementById('progressSize').textContent = 
+          `${formatBytes(received)} / ${formatBytes(total)}`;
+
+        if (elapsedSeconds > 0) {
+          const speed = received / elapsedSeconds;
+          document.getElementById('progressSpeed').textContent = formatBytes(speed) + '/s';
+        }
+      }
+
+      // Cancel download
+      document.getElementById('cancelBtn').addEventListener('click', () => {
+        if (currentDownloadAbortController) {
+          currentDownloadAbortController.abort();
+          document.getElementById('progressContainer').style.display = 'none';
+        }
+      });
+
+      // Show error
+      function showError(message) {
+        const filesGrid = document.getElementById('filesGrid');
+        filesGrid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">❌</div>
+            <div class="empty-state-text">Error</div>
+            <div class="empty-state-hint">${escapeHtml(message)}</div>
+          </div>
+        `;
+      }
+
+      // Escape HTML
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Theme toggle
+      document.getElementById('themeToggle').addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const icon = document.getElementById('themeIcon');
+        icon.textContent = document.body.classList.contains('light-theme') ? '🌞' : '🌙';
+        localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+      });
+
+      // Load saved theme
+      if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-theme');
+        document.getElementById('themeIcon').textContent = '🌞';
+      }
+
+      // Initialize
+      window.addEventListener('load', initializeReceiver);
+    </script>
+  </body>
+</html>

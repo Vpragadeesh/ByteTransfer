@@ -22,8 +22,8 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final toggleTheme = Provider.of<Function>(context, listen: false);
-    final currentTheme = Theme.of(context).brightness;
+    final toggleTheme = context.read<VoidCallback>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       appBar: AppBar(
@@ -31,15 +31,8 @@ class _ReceiverScreenState extends State<ReceiverScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(
-              currentTheme == Brightness.dark 
-                ? Icons.light_mode 
-                : Icons.dark_mode,
-            ),
-            onPressed: () => toggleTheme(),
-            tooltip: currentTheme == Brightness.dark 
-              ? 'Switch to Light Mode' 
-              : 'Switch to Dark Mode',
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: toggleTheme,
           ),
         ],
       ),

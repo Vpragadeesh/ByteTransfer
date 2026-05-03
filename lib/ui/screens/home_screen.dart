@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:byte_transfer/app/app_state_manager.dart';
 import 'sender_screen.dart';
-import 'receiver_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final toggleTheme = Provider.of<Function>(context, listen: false);
-    final currentTheme = Theme.of(context).brightness;
+    final toggleTheme = context.read<VoidCallback>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       appBar: AppBar(
@@ -18,15 +17,8 @@ class HomeScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(
-              currentTheme == Brightness.dark 
-                ? Icons.light_mode 
-                : Icons.dark_mode,
-            ),
-            onPressed: () => toggleTheme(),
-            tooltip: currentTheme == Brightness.dark 
-              ? 'Switch to Light Mode' 
-              : 'Switch to Dark Mode',
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: toggleTheme,
           ),
         ],
       ),
@@ -90,48 +82,25 @@ class HomeScreen extends StatelessWidget {
                     // Main action buttons
                     SizedBox(
                       width: double.infinity,
-                      child: Column(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: state.canShare
-                                ? () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => const SenderScreen(),
-                                      ),
-                                    );
-                                  }
-                                : null,
-                            icon: const Icon(Icons.upload),
-                            label: const Text('Send Files'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ),
-                            ),
+                      child: ElevatedButton.icon(
+                        onPressed: state.canShare
+                            ? () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SenderScreen(),
+                                  ),
+                                );
+                              }
+                            : null,
+                        icon: const Icon(Icons.upload),
+                        label: const Text('Send Files'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
                           ),
-                          const SizedBox(height: 16),
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ReceiverScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.download),
-                            label: const Text('Receive Files'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 40),

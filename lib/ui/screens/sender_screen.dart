@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:byte_transfer/app/app_state_manager.dart';
-import 'package:byte_transfer/models/shared_file.dart';
+import 'package:byte_transfer/models/permissions.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class SenderScreen extends StatefulWidget {
@@ -26,8 +26,8 @@ class _SenderScreenState extends State<SenderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final toggleTheme = Provider.of<Function>(context, listen: false);
-    final currentTheme = Theme.of(context).brightness;
+    final toggleTheme = context.read<VoidCallback>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
       appBar: AppBar(
@@ -35,15 +35,8 @@ class _SenderScreenState extends State<SenderScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(
-              currentTheme == Brightness.dark 
-                ? Icons.light_mode 
-                : Icons.dark_mode,
-            ),
-            onPressed: () => toggleTheme(),
-            tooltip: currentTheme == Brightness.dark 
-              ? 'Switch to Light Mode' 
-              : 'Switch to Dark Mode',
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            onPressed: toggleTheme,
           ),
         ],
       ),
@@ -222,7 +215,7 @@ class _SenderScreenState extends State<SenderScreen> {
   Widget _buildFileListItem(
     BuildContext context,
     AppStateManager state,
-    SharedFile file,
+    SharedFileWithPermissions file,
   ) {
     final fileLink = state.isServerRunning && state.serverInfo != null
         ? '${state.serverInfo!.baseUrl}/file/${file.id}'
@@ -241,12 +234,74 @@ class _SenderScreenState extends State<SenderScreen> {
                 onPressed: () => state.removeFile(file.id),
               ),
         children: [
-          if (fileLink != null) ...[
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Permission section
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Access Control:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: !state.isServerRunning
+                                ? () => _showPermissionDialog(context, state, file)
+                                : null,
+                            icon: const Icon(Icons.lock, size: 16),
+                            label: const Text('Manage'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        file.isPublic
+                            ? '🌐 Public - Anyone can download'
+                            : '🔒 Private - Role-based access',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                      if (file.requiredPermissions.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Roles: ${file.requiredPermissions.map((r) => r.toString().split('.').last).join(', ')}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (fileLink != null) ...[
                   const Text(
                     'Share Link:',
                     style: TextStyle(
@@ -294,10 +349,32 @@ class _SenderScreenState extends State<SenderScreen> {
                     child: _buildQrCode(fileLink),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ],
+      ),
+    );
+  }
+
+  /// Show dialog to manage file permissions
+  void _showPermissionDialog(
+    BuildContext context,
+    AppStateManager state,
+    SharedFileWithPermissions file,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => _PermissionDialog(
+        file: file,
+        onPermissionsChanged: (isPublic, roles) {
+          state.updateFilePermissions(
+            file.id,
+            isPublic: isPublic,
+            requiredPermissions: roles,
+          );
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -364,5 +441,106 @@ class _SenderScreenState extends State<SenderScreen> {
         ),
       );
     }
+  }
+}
+
+/// Permission management dialog
+class _PermissionDialog extends StatefulWidget {
+  final SharedFileWithPermissions file;
+  final Function(bool isPublic, Set<FilePermission> roles) onPermissionsChanged;
+
+  const _PermissionDialog({
+    required this.file,
+    required this.onPermissionsChanged,
+  });
+
+  @override
+  State<_PermissionDialog> createState() => _PermissionDialogState();
+}
+
+class _PermissionDialogState extends State<_PermissionDialog> {
+  late bool isPublic;
+  late Set<FilePermission> selectedRoles;
+
+  @override
+  void initState() {
+    super.initState();
+    isPublic = widget.file.isPublic;
+    selectedRoles = Set.from(widget.file.requiredPermissions);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Manage File Access'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Public toggle
+            SwitchListTile(
+              title: const Text('Public Access'),
+              subtitle: const Text('Allow anyone to download'),
+              value: isPublic,
+              onChanged: (value) {
+                setState(() {
+                  isPublic = value;
+                  if (value) {
+                    selectedRoles.clear(); // Clear roles if public
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            if (!isPublic) ...[
+              const Text(
+                'Select access roles:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 8),
+              _buildRoleCheckbox(FilePermission.admin, 'Admin', 'Full system access'),
+              _buildRoleCheckbox(FilePermission.editor, 'Editor', 'Read/write documents'),
+              _buildRoleCheckbox(FilePermission.viewer, 'Viewer', 'Read-only access'),
+              _buildRoleCheckbox(FilePermission.manager, 'Manager', 'Reports & analytics'),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            widget.onPermissionsChanged(isPublic, selectedRoles);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoleCheckbox(
+    FilePermission role,
+    String label,
+    String description,
+  ) {
+    return CheckboxListTile(
+      title: Text(label),
+      subtitle: Text(description, style: const TextStyle(fontSize: 12)),
+      value: selectedRoles.contains(role),
+      onChanged: (value) {
+        setState(() {
+          if (value ?? false) {
+            selectedRoles.add(role);
+          } else {
+            selectedRoles.remove(role);
+          }
+        });
+      },
+      dense: true,
+    );
   }
 }

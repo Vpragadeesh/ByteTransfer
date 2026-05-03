@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:byte_transfer/models/models.dart';
+import 'package:byte_transfer/models/permissions.dart';
 import 'package:byte_transfer/services/file_service.dart';
 import 'http_server_service.dart';
 
@@ -10,13 +12,45 @@ class HTTPServerServiceImpl implements HTTPServerService {
   HttpServer? _server;
   ServerInfo? _serverInfo;
   final FileService _fileService;
-  final Map<String, SharedFile> _registeredFiles = {};
+  final Map<String, SharedFileWithPermissions> _registeredFiles = {};
   final StreamController<ServerEvent> _eventsController =
       StreamController<ServerEvent>.broadcast();
   int _activeConnections = 0;
+  
+  // Server secret for HMAC token verification (should be set during initialization)
+  late String _serverSecret;
 
   HTTPServerServiceImpl({required FileService fileService})
-      : _fileService = fileService;
+      : _fileService = fileService {
+    // Initialize with a strong default secret (should be overridden in production)
+    _serverSecret = _generateServerSecret();
+  }
+  
+  /// Generate a strong random server secret
+  String _generateServerSecret() {
+    const length = 32;
+    final random = Random.secure();
+    final values = List<int>.generate(length, (i) => random.nextInt(256));
+    return base64Url.encode(values);
+  }
+  
+  /// Set server secret (for testing or configuration)
+  void setServerSecret(String secret) {
+    _serverSecret = secret;
+  }
+  
+  /// Extract and verify receiver permissions from token query parameter
+  ReceiverPermissions? _getReceiverPermissionsFromRequest(HttpRequest request) {
+    try {
+      final token = request.uri.queryParameters['token'];
+      if (token == null || token.isEmpty) {
+        return null; // No token = public access
+      }
+      return ReceiverPermissions.fromToken(token, secret: _serverSecret);
+    } catch (e) {
+      return null; // Invalid token
+    }
+  }
 
   /// Start HTTP server on available port
   @override
@@ -352,6 +386,25 @@ class HTTPServerServiceImpl implements HTTPServerService {
       return;
     }
 
+    // Check permissions
+    final receiver = _getReceiverPermissionsFromRequest(request);
+    
+    // If no token provided, only allow download of public files
+    if (receiver == null && !file.isPublic) {
+      request.response.statusCode = 403;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode({'error': 'forbidden', 'message': 'This file is not public'}));
+      return;
+    }
+    
+    // If token provided, check if receiver has access
+    if (receiver != null && !file.canAccess(receiver)) {
+      request.response.statusCode = 403;
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode({'error': 'forbidden', 'message': 'You do not have permission to access this file'}));
+      return;
+    }
+
     try {
       _recordEvent(
         type: ServerEventType.request,
@@ -387,7 +440,19 @@ class HTTPServerServiceImpl implements HTTPServerService {
 
   /// Handle list files endpoint
   void _handleListFiles(HttpRequest request) {
+    // Extract receiver permissions from token (if provided)
+    final receiver = _getReceiverPermissionsFromRequest(request);
+    
+    // Filter files based on permissions
     final files = _registeredFiles.values
+        .where((file) {
+          // If no token provided, only show public files
+          if (receiver == null) {
+            return file.isPublic;
+          }
+          // If token provided, check if receiver has access
+          return file.canAccess(receiver);
+        })
         .map((f) => {
               'id': f.id,
               'name': f.name,
@@ -402,6 +467,10 @@ class HTTPServerServiceImpl implements HTTPServerService {
     request.response.write(jsonEncode({
       'files': files,
       'count': files.length,
+      'receiver': receiver != null ? {
+        'name': receiver.name,
+        'roles': receiver.roles.map((r) => r.toString().split('.').last).toList(),
+      } : null,
     }));
   }
 
@@ -442,7 +511,25 @@ class HTTPServerServiceImpl implements HTTPServerService {
 
   /// Register file for serving
   @override
+  /// Register file for serving
+  @override
   void registerFile(SharedFile file) {
+    // Convert SharedFile to SharedFileWithPermissions (public by default)
+    _registeredFiles[file.id] = SharedFileWithPermissions(
+      id: file.id,
+      name: file.name,
+      path: file.path,
+      size: file.size,
+      mimeType: file.mimeType,
+      sharedAt: file.sharedAt,
+      requiredPermissions: {},
+      isPublic: true,
+    );
+  }
+
+  /// Register file with permission support for serving
+  @override
+  void registerFileWithPermissions(SharedFileWithPermissions file) {
     _registeredFiles[file.id] = file;
   }
 
@@ -463,7 +550,8 @@ class HTTPServerServiceImpl implements HTTPServerService {
   /// Get list of all registered files
   @override
   List<SharedFile> getRegisteredFiles() {
-    return List.unmodifiable(_registeredFiles.values);
+    // Return as SharedFile (backward compatibility)
+    return List.unmodifiable(_registeredFiles.values.cast<SharedFile>());
   }
 
   /// Record server event

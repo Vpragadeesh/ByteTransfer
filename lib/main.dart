@@ -27,7 +27,7 @@ class ByteTransferApp extends StatefulWidget {
 }
 
 class _ByteTransferAppState extends State<ByteTransferApp> {
-  ThemeMode _themeMode = ThemeMode.dark; // Default to dark theme
+  ThemeMode _themeMode = ThemeMode.dark;
 
   void _toggleTheme() {
     setState(() {
@@ -39,12 +39,8 @@ class _ByteTransferAppState extends State<ByteTransferApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Provide theme toggle function
-        Provider<Function>(
+        Provider<VoidCallback>(
           create: (_) => _toggleTheme,
-        ),
-        Provider<ThemeMode>(
-          create: (_) => _themeMode,
         ),
         // Create service instances with platform-specific file service
         Provider<FileService>(

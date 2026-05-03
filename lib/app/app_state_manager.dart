@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:byte_transfer/models/models.dart';
+import 'package:byte_transfer/models/permissions.dart';
 import 'package:byte_transfer/services/file_service.dart';
 import 'package:byte_transfer/services/network_service.dart';
 import 'package:byte_transfer/services/http_server_service.dart';
@@ -24,7 +27,7 @@ class AppStateManager extends ChangeNotifier {
   bool _permissionsGranted = false;
   NetworkStatus? _networkStatus;
   ServerInfo? _serverInfo;
-  List<SharedFile> _sharedFiles = [];
+  List<SharedFileWithPermissions> _sharedFiles = [];
   bool _isServerRunning = false;
   String? _shareLink;
   String? _error;
@@ -51,7 +54,7 @@ class AppStateManager extends ChangeNotifier {
   bool get permissionsGranted => _permissionsGranted;
   NetworkStatus? get networkStatus => _networkStatus;
   ServerInfo? get serverInfo => _serverInfo;
-  List<SharedFile> get sharedFiles => List.unmodifiable(_sharedFiles);
+  List<SharedFileWithPermissions> get sharedFiles => List.unmodifiable(_sharedFiles);
   bool get isServerRunning => _isServerRunning;
   String? get shareLink => _shareLink;
   String? get error => _error;
@@ -148,10 +151,23 @@ class AppStateManager extends ChangeNotifier {
       _error = null;
       final files = await fileService.pickFiles(multiple: true);
 
-      _sharedFiles = files;
+      // Wrap SharedFile in SharedFileWithPermissions with default permissions
+      _sharedFiles = files
+          .map((file) => SharedFileWithPermissions(
+                id: file.id,
+                name: file.name,
+                path: file.path,
+                size: file.size,
+                mimeType: file.mimeType,
+                sharedAt: file.sharedAt,
+                requiredPermissions: {}, // Public by default
+                isPublic: true, // Public by default
+              ))
+          .toList();
+      
       // Register files with HTTP server
-      for (final file in files) {
-        httpServerService.registerFile(file);
+      for (final file in _sharedFiles) {
+        httpServerService.registerFileWithPermissions(file);
       }
 
       notifyListeners();
@@ -159,6 +175,51 @@ class AppStateManager extends ChangeNotifier {
       _error = 'Failed to pick files: $e';
       notifyListeners();
     }
+  }
+
+  /// Update file permissions
+  void updateFilePermissions(
+    String fileId, {
+    Set<FilePermission>? requiredPermissions,
+    bool? isPublic,
+  }) {
+    final index = _sharedFiles.indexWhere((f) => f.id == fileId);
+    if (index != -1) {
+      final file = _sharedFiles[index];
+      _sharedFiles[index] = file.copyWith(
+        requiredPermissions: requiredPermissions ?? file.requiredPermissions,
+        isPublic: isPublic ?? file.isPublic,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Generate a permission token for a receiver
+  String? generateReceiverToken({
+    required String receiverName,
+    required Set<FilePermission> roles,
+    DateTime? expiresAt,
+  }) {
+    if (!_isServerRunning || _serverInfo == null) {
+      return null;
+    }
+
+    // Generate a unique receiver ID
+    final random = Random.secure();
+    final values = List<int>.generate(16, (_) => random.nextInt(256));
+    final receiverId = base64Url.encode(values).replaceAll('=', '');
+
+    final receiver = ReceiverPermissions(
+      id: receiverId,
+      name: receiverName,
+      roles: roles,
+      generatedAt: DateTime.now(),
+      expiresAt: expiresAt ?? DateTime.now().add(const Duration(days: 7)),
+    );
+
+    // You'll need to provide the server secret from HTTPServerServiceImpl
+    // For now, returning null as this needs integration with the server
+    return receiver.generateToken(secret: 'default-secret-change-in-production');
   }
 
   /// Start sharing server
